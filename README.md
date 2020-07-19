@@ -19,6 +19,8 @@ Flags:
     	Show command help
   -e value
     	Override environment variable (can be provided multiple times e.g. -e NAME=value -e ANOTHER_NAME=value)
+  -role string
+    	Assume the given role before making the request to CodeBuild
   -service-role string
     	Override the service role
   -src-location string

@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/codebuild"
 )
 
@@ -68,4 +70,10 @@ func sourceFromEnv(src *Source) (*Source, error) {
 		src.Version = os.Getenv(lookup["sourceVersion"])
 	}
 	return src, nil
+}
+
+// getSessionForRole returns a new session valid the given role ARN
+func getSessionForRole(roleARN string) (*session.Session, error) {
+	creds := stscreds.NewCredentials(sess, roleARN)
+	return session.NewSession(&aws.Config{Credentials: creds})
 }

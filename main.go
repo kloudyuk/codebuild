@@ -16,6 +16,7 @@ import (
 
 // Flags
 var envVars env
+var roleARN string
 var serviceRole string
 var sourceLocation string
 var sourceType string
@@ -58,6 +59,7 @@ func init() {
 	envVars = make(map[string]string)
 	flag.Usage = usage
 	flag.Var(&envVars, "e", "Override environment variable (can be provided multiple times e.g. -e NAME=value -e ANOTHER_NAME=value)")
+	flag.StringVar(&roleARN, "role", "", "Assume the given role before making the request to CodeBuild")
 	flag.StringVar(&serviceRole, "service-role", "", "Override the service role")
 	flag.StringVar(&sourceLocation, "src-location", "", "Override the source location")
 	flag.StringVar(&sourceType, "src-type", "", "Override the source type")
@@ -82,6 +84,16 @@ func main() {
 	// Ensure wait is true if tail is true
 	if tail {
 		wait = true
+	}
+
+	// if we've been given a role ARN, get a new session based on the assumed role
+	var err error
+	if roleARN != "" {
+		sess, err = getSessionForRole(roleARN)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 	}
 
 	// Get the AWS account ID
