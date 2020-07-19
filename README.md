@@ -23,6 +23,8 @@ Flags:
     	Override the CodeBuild source location
   -src-type string
     	Override the CodeBuild source type
+  -src-version string
+    	Override the CodeBuild source version
   -tail
     	Tail the logs via the CloudWatch log stream (implies -wait)
   -wait

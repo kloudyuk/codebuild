@@ -18,11 +18,19 @@ import (
 var envVars env
 var sourceLocation string
 var sourceType string
+var sourceVersion string
 var tail bool
 var wait bool
 
 // Args
 var project string
+
+// Source represents the CodeBuild source options
+type Source struct {
+	Type     string
+	Location string
+	Version  string
+}
 
 var accountID string
 var region string
@@ -51,6 +59,7 @@ func init() {
 	flag.Var(&envVars, "e", "Override a CodeBuild environment variable (can be provided multiple times e.g. -e NAME=value -e ANOTHER_NAME=value)")
 	flag.StringVar(&sourceLocation, "src-location", "", "Override the CodeBuild source location")
 	flag.StringVar(&sourceType, "src-type", "", "Override the CodeBuild source type")
+	flag.StringVar(&sourceVersion, "src-version", "", "Override the CodeBuild source version")
 	flag.BoolVar(&tail, "tail", false, "Tail the logs via the CloudWatch log stream (implies -wait)")
 	flag.BoolVar(&wait, "wait", false, "Wait for the build to complete")
 	flag.Parse()
@@ -82,9 +91,16 @@ func main() {
 	}
 	accountID = *callerID.Account
 
+	// Create a source object from the flags
+	src := &Source{
+		sourceType,
+		sourceLocation,
+		sourceVersion,
+	}
+
 	// Start the AWS CodeBuild build
 	fmt.Printf("Starting AWS CodeBuild for project: %s\n", project)
-	out, err := StartBuild(project, sourceType, sourceLocation, envVars)
+	out, err := StartBuild(project, src, envVars)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -122,16 +138,19 @@ func main() {
 }
 
 // StartBuild starts an AWS CodeBuild build
-func StartBuild(project string, sourceType string, sourceLocation string, envVars env) (*codebuild.StartBuildOutput, error) {
+func StartBuild(project string, src *Source, envVars env) (*codebuild.StartBuildOutput, error) {
 	svc := codebuild.New(sess)
 	in := &codebuild.StartBuildInput{
 		ProjectName: aws.String(project),
 	}
-	if sourceType != "" {
-		in.SourceTypeOverride = aws.String(sourceType)
+	if src.Type != "" {
+		in.SourceTypeOverride = aws.String(src.Type)
 	}
-	if sourceLocation != "" {
-		in.SourceLocationOverride = aws.String(sourceLocation)
+	if src.Location != "" {
+		in.SourceLocationOverride = aws.String(src.Location)
+	}
+	if src.Version != "" {
+		in.SourceVersion = aws.String(src.Version)
 	}
 	for k, v := range envVars {
 		in.EnvironmentVariablesOverride = append(in.EnvironmentVariablesOverride, &codebuild.EnvironmentVariable{
