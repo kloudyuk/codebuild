@@ -173,7 +173,7 @@ func Wait(ctx context.Context, id string) error {
 		}
 		if *out.BuildComplete {
 			// the build may complete before we have the full set of logs so wait a bit before we exit
-			time.Sleep(10)
+			time.Sleep(10 * time.Second)
 			return nil
 		}
 		time.Sleep(3 * time.Second)
