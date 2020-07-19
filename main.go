@@ -16,6 +16,7 @@ import (
 
 // Flags
 var envVars env
+var serviceRole string
 var sourceLocation string
 var sourceType string
 var sourceVersion string
@@ -56,11 +57,12 @@ Flags:
 func init() {
 	envVars = make(map[string]string)
 	flag.Usage = usage
-	flag.Var(&envVars, "e", "Override a CodeBuild environment variable (can be provided multiple times e.g. -e NAME=value -e ANOTHER_NAME=value)")
-	flag.StringVar(&sourceLocation, "src-location", "", "Override the CodeBuild source location")
-	flag.StringVar(&sourceType, "src-type", "", "Override the CodeBuild source type")
-	flag.StringVar(&sourceVersion, "src-version", "", "Override the CodeBuild source version")
-	flag.BoolVar(&tail, "tail", false, "Tail the logs via the CloudWatch log stream (implies -wait)")
+	flag.Var(&envVars, "e", "Override environment variable (can be provided multiple times e.g. -e NAME=value -e ANOTHER_NAME=value)")
+	flag.StringVar(&serviceRole, "service-role", "", "Override the service role")
+	flag.StringVar(&sourceLocation, "src-location", "", "Override the source location")
+	flag.StringVar(&sourceType, "src-type", "", "Override the source type")
+	flag.StringVar(&sourceVersion, "src-version", "", "Override the source version")
+	flag.BoolVar(&tail, "tail", false, "Tail the logs (implies -wait)")
 	flag.BoolVar(&wait, "wait", false, "Wait for the build to complete")
 	flag.Parse()
 	sess = session.Must(session.NewSession())
@@ -98,9 +100,16 @@ func main() {
 		sourceVersion,
 	}
 
+	// Attempt to fill out missing source info from environment variables
+	src, err = sourceFromEnv(src)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
 	// Start the AWS CodeBuild build
 	fmt.Printf("Starting AWS CodeBuild for project: %s\n", project)
-	out, err := StartBuild(project, src, envVars)
+	out, err := StartBuild(project, serviceRole, src, envVars)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -138,10 +147,13 @@ func main() {
 }
 
 // StartBuild starts an AWS CodeBuild build
-func StartBuild(project string, src *Source, envVars env) (*codebuild.StartBuildOutput, error) {
+func StartBuild(project string, serviceRole string, src *Source, envVars env) (*codebuild.StartBuildOutput, error) {
 	svc := codebuild.New(sess)
 	in := &codebuild.StartBuildInput{
 		ProjectName: aws.String(project),
+	}
+	if serviceRole != "" {
+		in.ServiceRoleOverride = aws.String(serviceRole)
 	}
 	if src.Type != "" {
 		in.SourceTypeOverride = aws.String(src.Type)

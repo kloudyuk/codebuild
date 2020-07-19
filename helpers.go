@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -41,4 +42,31 @@ func waitForLogInfo(id string) (string, string, error) {
 func buildURL(id string) string {
 	return fmt.Sprintf("https://%s.console.aws.amazon.com/codesuite/codebuild/%s/projects/%s/build/%s/?region=%s",
 		region, accountID, project, id, region)
+}
+
+var bitbucketEnvVars = map[string]string{
+	sourceType:     "BITBUCKET",
+	sourceLocation: "BITBUCKET_GIT_HTTP_ORIGIN",
+	sourceVersion:  "BITBUCKET_COMMIT",
+}
+
+// sourceFromEnv tries to get missing source info from environment variables based on the type
+func sourceFromEnv(src *Source) (*Source, error) {
+	if src.Type == "" {
+		return src, nil
+	}
+	var lookup map[string]string
+	switch src.Type {
+	case "BITBUCKET":
+		lookup = bitbucketEnvVars
+	default:
+		return nil, fmt.Errorf("Unknown source type: %s", src.Type)
+	}
+	if src.Location == "" {
+		src.Location = os.Getenv(lookup["sourceType"])
+	}
+	if src.Version == "" {
+		src.Version = os.Getenv(lookup["sourceType"])
+	}
+	return src, nil
 }

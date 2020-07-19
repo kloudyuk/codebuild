@@ -18,15 +18,17 @@ Flags:
   -help -h
     	Show command help
   -e value
-    	Override a CodeBuild environment variable (can be provided multiple times e.g. -e NAME=value -e ANOTHER_NAME=value)
+    	Override environment variable (can be provided multiple times e.g. -e NAME=value -e ANOTHER_NAME=value)
+  -service-role string
+    	Override the service role
   -src-location string
-    	Override the CodeBuild source location
+    	Override the source location
   -src-type string
-    	Override the CodeBuild source type
+    	Override the source type
   -src-version string
-    	Override the CodeBuild source version
+    	Override the source version
   -tail
-    	Tail the logs via the CloudWatch log stream (implies -wait)
+    	Tail the logs (implies -wait)
   -wait
     	Wait for the build to complete
 ```
