@@ -18,9 +18,11 @@ Flags:
   -help -h
     	Show command help
   -e value
-    	Environment variable override (can be provided multiple times e.g. -e NAME=value -e ANOTHER_NAME=value)
-  -location string
-    	Source location override
+    	Override a CodeBuild environment variable (can be provided multiple times e.g. -e NAME=value -e ANOTHER_NAME=value)
+  -src-location string
+    	Override the CodeBuild source location
+  -src-type string
+    	Override the CodeBuild source type
   -tail
     	Tail the logs via the CloudWatch log stream (implies -wait)
   -wait

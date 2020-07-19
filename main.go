@@ -16,7 +16,8 @@ import (
 
 // Flags
 var envVars env
-var location string
+var sourceLocation string
+var sourceType string
 var tail bool
 var wait bool
 
@@ -47,8 +48,9 @@ Flags:
 func init() {
 	envVars = make(map[string]string)
 	flag.Usage = usage
-	flag.Var(&envVars, "e", "Environment variable override (can be provided multiple times e.g. -e NAME=value -e ANOTHER_NAME=value)")
-	flag.StringVar(&location, "location", "", "Source location override")
+	flag.Var(&envVars, "e", "Override a CodeBuild environment variable (can be provided multiple times e.g. -e NAME=value -e ANOTHER_NAME=value)")
+	flag.StringVar(&sourceLocation, "src-location", "", "Override the CodeBuild source location")
+	flag.StringVar(&sourceType, "src-type", "", "Override the CodeBuild source type")
 	flag.BoolVar(&tail, "tail", false, "Tail the logs via the CloudWatch log stream (implies -wait)")
 	flag.BoolVar(&wait, "wait", false, "Wait for the build to complete")
 	flag.Parse()
@@ -82,7 +84,7 @@ func main() {
 
 	// Start the AWS CodeBuild build
 	fmt.Printf("Starting AWS CodeBuild for project: %s\n", project)
-	out, err := StartBuild(project, location, envVars)
+	out, err := StartBuild(project, sourceType, sourceLocation, envVars)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -120,13 +122,16 @@ func main() {
 }
 
 // StartBuild starts an AWS CodeBuild build
-func StartBuild(project string, location string, envVars env) (*codebuild.StartBuildOutput, error) {
+func StartBuild(project string, sourceType string, sourceLocation string, envVars env) (*codebuild.StartBuildOutput, error) {
 	svc := codebuild.New(sess)
 	in := &codebuild.StartBuildInput{
 		ProjectName: aws.String(project),
 	}
-	if location != "" {
-		in.SourceLocationOverride = aws.String(location)
+	if sourceType != "" {
+		in.SourceTypeOverride = aws.String(sourceType)
+	}
+	if sourceLocation != "" {
+		in.SourceLocationOverride = aws.String(sourceLocation)
 	}
 	for k, v := range envVars {
 		in.EnvironmentVariablesOverride = append(in.EnvironmentVariablesOverride, &codebuild.EnvironmentVariable{
@@ -148,6 +153,8 @@ func Wait(ctx context.Context, id string) error {
 			return err
 		}
 		if *out.BuildComplete {
+			// the build may complete before we have the full set of logs so wait a bit before we exit
+			time.Sleep(10)
 			return nil
 		}
 		time.Sleep(3 * time.Second)
