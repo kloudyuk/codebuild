@@ -45,9 +45,8 @@ func buildURL(id string) string {
 }
 
 var bitbucketEnvVars = map[string]string{
-	sourceType:     "BITBUCKET",
-	sourceLocation: "BITBUCKET_GIT_HTTP_ORIGIN",
-	sourceVersion:  "BITBUCKET_COMMIT",
+	"sourceLocation": "BITBUCKET_GIT_HTTP_ORIGIN",
+	"sourceVersion":  "BITBUCKET_COMMIT",
 }
 
 // sourceFromEnv tries to get missing source info from environment variables based on the type
@@ -63,10 +62,10 @@ func sourceFromEnv(src *Source) (*Source, error) {
 		return nil, fmt.Errorf("Unknown source type: %s", src.Type)
 	}
 	if src.Location == "" {
-		src.Location = os.Getenv(lookup["sourceType"])
+		src.Location = os.Getenv(lookup["sourceLocation"])
 	}
 	if src.Version == "" {
-		src.Version = os.Getenv(lookup["sourceType"])
+		src.Version = os.Getenv(lookup["sourceVersion"])
 	}
 	return src, nil
 }
