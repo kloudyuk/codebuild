@@ -12,12 +12,13 @@ Usage:
 
 Args:
   project string
-        The name of the CodeBuild project
+	The name of the CodeBuild project
 
 Flags:
+  -help -h
+    	Show command help
   -e value
-    	Environment variable override (can be provided multiple times)
-    	e.g. -e NAME=value -e ANOTHER_NAME=value
+    	Environment variable override (can be provided multiple times e.g. -e NAME=value -e ANOTHER_NAME=value)
   -location string
     	Source location override
   -tail

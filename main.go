@@ -34,11 +34,11 @@ Usage:
 
 Args:
   project string
-        The name of the CodeBuild project
+	The name of the CodeBuild project
 
 Flags:
   -help -h
-        Show command help 
+	Show command help
 `)
 	flag.PrintDefaults()
 	fmt.Println()
@@ -47,7 +47,7 @@ Flags:
 func init() {
 	envVars = make(map[string]string)
 	flag.Usage = usage
-	flag.Var(&envVars, "e", "Environment variable override (can be provided multiple times e.g. -e NAME=value -e ANOTHER_NAME=value")
+	flag.Var(&envVars, "e", "Environment variable override (can be provided multiple times e.g. -e NAME=value -e ANOTHER_NAME=value)")
 	flag.StringVar(&location, "location", "", "Source location override")
 	flag.BoolVar(&tail, "tail", false, "Tail the logs via the CloudWatch log stream (implies -wait)")
 	flag.BoolVar(&wait, "wait", false, "Wait for the build to complete")
