@@ -198,6 +198,10 @@ func Wait(ctx context.Context, id string) error {
 		if *out.BuildComplete {
 			// the build may complete before we have the full set of logs so wait a bit before we exit
 			time.Sleep(10 * time.Second)
+			// return an error if the build didn't complete successfully
+			if *out.BuildStatus != codebuild.StatusTypeSucceeded {
+				return fmt.Errorf("Build failed with status: %s", *out.BuildStatus)
+			}
 			return nil
 		}
 		time.Sleep(3 * time.Second)
