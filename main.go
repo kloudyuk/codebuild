@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"os"
 	"time"
+
+	flag "github.com/spf13/pflag"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -13,16 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/codebuild"
 	"github.com/aws/aws-sdk-go/service/sts"
 )
-
-// Flags
-var envVars env
-var roleARN string
-var serviceRole string
-var sourceLocation string
-var sourceType string
-var sourceVersion string
-var tail bool
-var wait bool
 
 // Args
 var project string
@@ -41,34 +32,26 @@ var sess *session.Session
 func usage() {
 	fmt.Printf(`
 Usage:
-  codebuild [flags] project
-
-Args:
-  project string
-	The name of the CodeBuild project
+  codebuild PROJECT [FLAGS]
 
 Flags:
-  -help -h
-	Show command help
 `)
 	flag.PrintDefaults()
 	fmt.Println()
 }
 
 func init() {
-	envVars = make(map[string]string)
 	flag.Usage = usage
-	flag.Var(&envVars, "e", "Override environment variable (can be provided multiple times e.g. -e NAME=value -e ANOTHER_NAME=value)")
-	flag.StringVar(&roleARN, "role", "", "Assume the given role before making the request to CodeBuild")
+	flag.VarP(&envVars, "env", "e", "Override environment variables\nCan be provided multiple times or as a comma separated list")
+	flag.StringVarP(&computeType, "compute-type", "c", "", "Override the compute type")
+	flag.BoolVarP(&follow, "follow", "f", false, "Tail the logs (implies --wait=true)")
+	flag.StringVar(&roleARN, "role-arn", "", "Assume the given role before making the request to CodeBuild")
 	flag.StringVar(&serviceRole, "service-role", "", "Override the service role")
-	flag.StringVar(&sourceLocation, "src-location", "", "Override the source location")
-	flag.StringVar(&sourceType, "src-type", "", "Override the source type")
-	flag.StringVar(&sourceVersion, "src-version", "", "Override the source version")
-	flag.BoolVar(&tail, "tail", false, "Tail the logs (implies -wait)")
-	flag.BoolVar(&wait, "wait", false, "Wait for the build to complete")
-	flag.Parse()
-	sess = session.Must(session.NewSession())
-	region = *sess.Config.Region
+	flag.StringVarP(&sourceLocation, "source-location", "l", "", "Override the source location")
+	flag.StringVarP(&sourceType, "source-type", "t", "", "Override the source type")
+	flag.StringVarP(&sourceVersion, "source-version", "v", "", "Override the source version")
+	flag.BoolVarP(&wait, "wait", "w", false, "Wait for the build to complete")
+	parseFlags()
 }
 
 func main() {
@@ -81,20 +64,10 @@ func main() {
 	}
 	project = flag.Args()[0]
 
-	// Ensure wait is true if tail is true
-	if tail {
-		wait = true
-	}
-
-	// if we've been given a role ARN, get a new session based on the assumed role
-	var err error
-	if roleARN != "" {
-		sess, err = getSessionForRole(roleARN)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-	}
+	// Generate a session to use with the SDK
+	// If a role ARN was provided, the returned session will be based on that role
+	sess = createSession()
+	region = *sess.Config.Region
 
 	// Get the AWS account ID
 	svc := sts.New(sess)
@@ -105,14 +78,12 @@ func main() {
 	}
 	accountID = *callerID.Account
 
-	// Create a source object from the flags
+	// Create a source object from the flags and attempt to get missing info from the env
 	src := &Source{
 		sourceType,
 		sourceLocation,
 		sourceVersion,
 	}
-
-	// Attempt to fill out missing source info from environment variables
 	src, err = sourceFromEnv(src)
 	if err != nil {
 		fmt.Println(err)
@@ -130,7 +101,7 @@ func main() {
 	fmt.Printf("Build URL: %s\n", buildURL(buildID))
 
 	// Tail the CloudWatch log stream
-	if tail {
+	if follow {
 		fmt.Println("Waiting for CloudWatch log info...")
 		logGroup, logStream, err := waitForLogInfo(buildID)
 		if err != nil {
@@ -163,6 +134,9 @@ func StartBuild(project string, serviceRole string, src *Source, envVars env) (*
 	svc := codebuild.New(sess)
 	in := &codebuild.StartBuildInput{
 		ProjectName: aws.String(project),
+	}
+	if computeType != "" {
+		in.ComputeTypeOverride = aws.String(computeType)
 	}
 	if serviceRole != "" {
 		in.ServiceRoleOverride = aws.String(serviceRole)

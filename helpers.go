@@ -72,8 +72,11 @@ func sourceFromEnv(src *Source) (*Source, error) {
 	return src, nil
 }
 
-// getSessionForRole returns a new session valid the given role ARN
-func getSessionForRole(roleARN string) (*session.Session, error) {
-	creds := stscreds.NewCredentials(sess, roleARN)
-	return session.NewSession(&aws.Config{Credentials: creds})
+func createSession() *session.Session {
+	sess := session.Must(session.NewSession())
+	if roleARN != "" {
+		creds := stscreds.NewCredentials(sess, roleARN)
+		sess = session.Must(session.NewSession(&aws.Config{Credentials: creds}))
+	}
+	return sess
 }
